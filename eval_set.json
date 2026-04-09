@@ -1,0 +1,17 @@
+[
+  {
+    "id": "eval_01",
+    "input": "What is the capital of France?",
+    "expected": "Paris"
+  },
+  {
+    "id": "eval_02",
+    "input": "Summarize photosynthesis in one sentence.",
+    "expected": "Photosynthesis is the process by which plants convert sunlight, water, and carbon dioxide into glucose and oxygen."
+  },
+  {
+    "id": "eval_03",
+    "input": "Is 17 a prime number? Answer yes or no.",
+    "expected": "Yes"
+  }
+]
