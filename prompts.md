@@ -49,7 +49,7 @@ and ask for the specific missing information rather than guessing.
 
 **What changed and why:** Added a required four-section output structure, named the three specialty contracts explicitly so the model could reason against them instead of generalizing, swapped specific revenue figures for ranges with a disclaimer, and added an explicit uncertainty instruction ("say so... rather than guessing") to suppress hallucination on vague inputs.
 
-**What improved / stayed the same / got worse:** Output structure became consistent across all cases. Case 4 (Yun S., incomplete info) started correctly flagging data gaps instead of fabricating a confident recommendation. Revenue figures shifted to properly caveated ranges. What stayed the same: the tone was still generic and didn't address the operator directly. What got worse: on Case 3 (David L., multiple specialty contracts), the model under-weighted Specialized Behavior Support because the prompt didn't spell out the specific eligibility criteria for each contract.
+**What improved / stayed the same / got worse:** Output structure became consistent across all cases. Case 4 (Yun S., incomplete info) started correctly flagging data gaps instead of fabricating a confident recommendation. Revenue figures shifted to properly caveated ranges. What stayed the same: the tone was still generic and didn't address the operator directly. What got worse: on Case 3 (David L., multiple specialty contracts), the model under-weighted specialty contract reasoning generally — it would latch onto one or two contracts and skip the others because the prompt listed no specific eligibility criteria for any of them, giving the model nothing concrete to reason against.
 
 ---
 
@@ -100,7 +100,7 @@ Important rules:
 | Revision | Motivated By | Evidence Source |
 |---|---|---|
 | Initial → Rev 1 | Inconsistent format, false precision, confident hallucination on vague input | Informal pre-eval testing |
-| Rev 1 → Rev 2 | Under-weighting SBS on Case 3; anticipated out-of-state failure on Case 5 | Informal testing + eval_set.json design |
+| Rev 1 → Rev 2 | Under-weighted specialty contract reasoning on Case 3 (contracts listed but no criteria); anticipated out-of-state failure on Case 5 | Informal testing + eval_set.json design |
 | Rev 2 → (future) Rev 3 | Full failure on Case 5 (out-of-state guardrail didn't fire at all) and partial on Case 3 (ECS rejected despite clear signals) | `report.md` Case 5 / Case 3 analysis, `output.md` Case 5 and Case 3 memos |
 
 The key takeaway: the evaluation set surfaced two concrete weaknesses — Case 5 out-of-state handling (guardrail too soft to force a refusal) and Case 3 ECS eligibility reasoning (contract named but criteria not spelled out) — that point the next iteration in an evidence-driven direction rather than guesswork.
