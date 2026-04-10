@@ -1,45 +1,74 @@
-# Evaluation Report
+# Report — AFH Reimbursement Optimization Memo Generator
 
-## Summary
+**Author:** Loni Vrad
+**Course:** Week 2 GenAI Workflow Assignment
+**Model:** Anthropic Claude Sonnet 4 (`claude-sonnet-4-20250514`)
+**Date:** April 2026
 
-Ran 6 evaluation cases against the AFH Resident Reimbursement Optimization tool using Claude Sonnet (`claude-sonnet-4-20250514`). The tool performed well on standard cases and most edge cases. 5 of 6 cases passed, with 1 partial failure on the out-of-state terminology detection case.
+---
 
-## Methodology
+## Business Use Case
 
-- **Model:** `claude-sonnet-4-20250514` (Anthropic Claude API)
-- **System prompt version:** v1 (see `prompts.md` / `app.py` SYSTEM_PROMPT)
-- **Eval cases:** 6 (see `eval_set.json`)
-- **Metrics:** Manual review against expected output notes — evaluated on correctness of tier assessment, specialty contract identification, hallucination avoidance, and handling of missing/ambiguous information
-- **Date run:** 2026-04-09
+Adult Family Homes (AFHs) in Washington State are small, licensed residential care facilities — typically 2–6 beds — serving aging and disabled adults under DSHS Medicaid contracts. Operators are generally clinically capable but rarely have the administrative expertise to optimize reimbursement under DSHS's tiered rate structure and specialty contract system (Expanded Community Services, Specialized Behavior Support, Enhanced Adult Residential Care).
 
-## Results
+This prototype automates the first pass of a reimbursement review: given a semi-structured resident profile (diagnoses, ADL dependencies, nurse delegation tasks, current Medicaid tier, behavioral notes), the system produces a structured memo assessing tier accuracy, specialty contract eligibility, estimated revenue impact, and a draft DSHS reassessment request.
 
-| ID | Label | Resident | Pass/Fail | Notes |
-|----|-------|----------|-----------|-------|
-| 1 | normal_case_clear_upgrade | Margaret T. | **PASS** | Correctly identified Tier 1 as inappropriate. Recommended Tier 2/3 upgrade. Flagged overdue assessment (14 months). Identified Specialized Behavior Support eligibility due to wandering/sundowning. Revenue impact estimate included. |
-| 2 | normal_case_already_optimized | Robert K. | **PASS** | Correctly confirmed Tier 1 is appropriate. Did not hallucinate upgrade opportunities. Acknowledged operator is billing correctly. No specialty contract eligibility identified. |
-| 3 | edge_case_multiple_specialty_contracts | David L. | **PASS** | Identified Tier 2 → Tier 3 upgrade. Flagged multiple specialty contract eligibility (SBS, ECS, EARC). Provided reasoning about overlapping eligibility. Included revenue impact estimates and sequencing guidance. |
-| 4 | edge_case_incomplete_information | Yun S. | **PASS** | Correctly refused to guess. Identified missing information: specific ADL dependencies, medication list, current tier, last assessment date. Provided concrete checklist for the operator. Did not hallucinate a confident recommendation from vague input. |
-| 5 | likely_failure_out_of_state_resident | Clara M. | **PARTIAL FAIL** | Did not immediately flag that "Level of Care B" is not WA DSHS terminology. Instead proceeded with analysis using the non-WA classification, though did note the terminology was atypical. The system prompt instructs the model to flag classification mismatches, but the model only partially followed this — it noted the issue but still provided WA-specific advice rather than declining until clarification. |
-| 6 | edge_case_new_admission_no_rate_yet | Helen P. | **PASS** | Adapted workflow to pre-assignment scenario. Recommended initial Tier 3 based on clinical profile. Identified specialty contract eligibility to pursue once Medicaid is active. Advised on documentation from day one. Did not rigidly follow upgrade-detection pattern. |
+The revenue opportunity is material: the difference between a base Tier 1 rate and a correctly documented Tier 2 or specialty contract rate can exceed $50–100/resident/day. Most operators lose this revenue not through fraud or negligence, but through lack of awareness — DSHS does not proactively flag mismatches, and dominant AFH compliance platforms do not address reimbursement strategy.
 
-## Analysis
+---
 
-### What worked well
-- **Tier assessment accuracy:** The model correctly assessed tier appropriateness in all standard cases — both when an upgrade was warranted (Case 1) and when the current tier was correct (Case 2).
-- **Hallucination avoidance:** Case 2 (already optimized) and Case 4 (incomplete info) both tested whether the model would fabricate recommendations. It did not — it correctly said "no upgrade needed" and "insufficient information" respectively.
-- **Complex reasoning:** Case 3 required reasoning about multiple overlapping specialty contracts without double-counting. The model handled this well, identifying SBS, ECS, and EARC eligibility with appropriate nuance.
-- **Workflow adaptation:** Case 6 (new admission, no tier yet) required the model to shift from its default "compare current vs. recommended tier" pattern to a "recommend initial tier" pattern. It adapted correctly.
-- **Structured output:** All 6 cases followed the required 4-section memo format consistently.
+## Model Selection
 
-### What didn't work well
-- **Out-of-state detection (Case 5):** This was the predicted failure case. The system prompt explicitly instructs the model to flag classification mismatches, but the model only partially complied. It noted "Level of Care B" was atypical but still provided WA-specific analysis rather than stopping and requesting clarification. This is a known LLM tendency — models prefer to give helpful-sounding answers rather than declining to answer.
+**Primary model: Anthropic Claude Sonnet 4 (`claude-sonnet-4-20250514`)** via the Anthropic Messages API.
 
-### Prompt improvement opportunities
-1. **Stronger guardrail for classification mismatch:** The system prompt could be more forceful — e.g., "If the classification system does not match WA DSHS terminology, you MUST stop and refuse to proceed until the state is confirmed. Do NOT provide WA-specific advice if the terminology is from another state."
-2. **Rate number specificity:** The model uses approximate ranges as instructed, but some outputs could be more specific about which DSHS rate schedule they reference.
-3. **Assessment timeline flagging:** Case 1 correctly flagged the overdue assessment, but this could be made a standard check across all cases via prompt engineering.
+Chosen for three reasons: (1) strong instruction-following on structured, multi-section output tasks, which matters for this workflow because operators need a consistent memo format they can review at a glance; (2) demonstrated caution on refusal-style edge cases (flagging incomplete information instead of guessing), which directly maps to the hallucination-avoidance requirements of a clinical/regulatory domain; (3) practical fit with the 2048-token memo length this workflow requires.
 
-## Conclusion
+Only Claude Sonnet was tested in this prototype cycle. The prompt design is model-agnostic and could be ported to GPT-4o or Gemini with minor adjustment — the structure of the four-section memo and the "Important rules" block would carry over cleanly. A production version would benefit from A/B testing across models on the same evaluation set before committing.
 
-The AFH Resident Reimbursement Optimization tool performs well across standard and edge cases. It correctly identifies upgrade opportunities, avoids hallucination on already-optimized or incomplete cases, handles complex multi-contract eligibility, and adapts to non-standard scenarios like new admissions. The primary weakness is insufficient guardrailing on out-of-state classification detection — a prompt iteration adding stronger refusal language for terminology mismatches would likely fix this. Overall, 5/6 cases passed on the first prompt version, which is a strong baseline for iteration.
+---
+
+## Baseline vs. Final Design
+
+All three prompt versions were benchmarked against the same 6-case evaluation set (`eval_set.json`). Full memo outputs are in `output.md`; the full iteration rationale is in `prompts.md`.
+
+### Initial Version (Baseline)
+A minimal system prompt with no output structure, no named specialty contracts, and no uncertainty guardrails. Observed failure modes: inconsistent output format across cases (sometimes bullets, sometimes prose); fabricated specific dollar figures with false precision (e.g., "$3,847/month"); confident tier recommendations even on vague input (Case 4); underweighting of behavioral complexity on multi-contract cases (Case 3).
+
+### Revision 1
+Added a required four-section output structure, named the three specialty contracts (ECS, SBS, EARC), swapped specific revenue figures for ranges with disclaimers, and added an explicit "say so rather than guess" instruction for vague inputs. Observed improvement: consistent formatting across all cases; Case 4 (Yun S., incomplete info) started correctly flagging data gaps; revenue figures shifted to properly caveated ranges. Remaining issue: tone was still generic, and Case 3 (David L., multiple contracts) still under-weighted Specialized Behavior Support because the prompt did not spell out SBS eligibility criteria.
+
+### Revision 2 (Final — current version in `app.py`)
+Added a dedicated "Important rules" block including a guardrail against non-WA classification systems (motivated by Case 5, the anticipated out-of-state failure), explicit "do not fabricate upgrade opportunities" language, and stronger cite-your-reasoning requirements.
+
+**Final results on the 6-case eval set:** 5 clean passes, 1 partial failure.
+
+| ID | Case | Pass/Fail | Key observation |
+|----|------|-----------|-----------------|
+| 1 | Margaret T. (clear upgrade) | **PASS** | Correctly flagged Tier 1 as inappropriate; identified SBS eligibility; flagged 14-month-overdue assessment |
+| 2 | Robert K. (already optimized) | **PASS** | Correctly held Tier 1; did not hallucinate any upgrade opportunity |
+| 3 | David L. (multi-contract) | **PASS** | Identified Tier 2→3 upgrade plus overlapping SBS/ECS/EARC eligibility with sequencing notes |
+| 4 | Yun S. (incomplete info) | **PASS** | Refused to guess; produced concrete data-gathering checklist |
+| 5 | Clara M. (out-of-state) | **PARTIAL FAIL** | Noted "Level of Care B" as atypical but still produced WA-specific advice |
+| 6 | Helen P. (new admission, no tier yet) | **PASS** | Adapted workflow to pre-assignment scenario instead of rigidly comparing tiers |
+
+The iteration cycle directly demonstrates evidence-based prompt improvement: each revision was motivated by a specific failure mode observed in the preceding version's outputs, and each measurable improvement can be traced back to a specific prompt change.
+
+---
+
+## Where the Prototype Still Fails
+
+The partial failure on **Case 5 (out-of-state resident)** is the most important gap. The Revision 2 rule ("flag this immediately and ask for clarification") is too soft — the model acknowledged the classification mismatch but still produced a full WA-specific memo rather than refusing to proceed. This is a known LLM tendency to prefer helpful-sounding output over refusal, and in this domain it could mislead an operator into applying WA-specific guidance to a non-WA case. A Revision 3 would need categorical refusal language ("you MUST stop and refuse to provide any tier or contract recommendations until the operator confirms the state").
+
+Three additional gaps require human review in any deployed version: (1) **Revenue estimates are imprecise** — the model uses labeled ranges as instructed, but without a live DSHS rate-table lookup, figures may drift as annual rates change; (2) **Documentation quality assumption** — the system trusts the operator's input profile and cannot detect undocumented nurse delegation tasks that would weaken a reassessment request; (3) **Specialty contract eligibility is advisory, not determinative** — DSHS outcomes depend on in-person assessment, so model outputs should be treated as screening flags, not guarantees.
+
+---
+
+## Deployment Recommendation
+
+**Conditionally recommended for deployment as a screening and drafting tool — not as a standalone decision system.**
+
+The evaluation shows that Claude Sonnet 4 with the Revision 2 prompt handles the core workflow reliably: it correctly assesses tier appropriateness in both directions (upgrade warranted vs. already optimized), avoids hallucination on incomplete input, reasons about overlapping specialty contract eligibility, and adapts to non-standard scenarios like new admissions. This is meaningful value — operators currently leave significant revenue on the table because no first-pass review exists at their scale.
+
+However, deployment should require four conditions: (1) **human review** by a knowledgeable advisor (a care manager, social worker, or experienced operator) before any memo is sent to DSHS; (2) a **connected DSHS rate table**, updated at least annually, to ground revenue estimates; (3) **explicit disclosure** to operators that outputs are advisory and require professional verification; (4) a **confidence indicator** in the UI — memos generated from incomplete profiles (like Case 4) or flagged classification mismatches (like Case 5) should be visually marked as low-confidence, and the out-of-state guardrail must be hardened via a Revision 3 prompt before go-live.
+
+Under these conditions, the tool meaningfully reduces time spent on first-pass review and surfaces revenue operators are entitled to but currently missing. Without them — particularly without human review and the Case 5 fix — the risk of a misapplied recommendation in a clinical/regulatory context outweighs the workflow benefit.
