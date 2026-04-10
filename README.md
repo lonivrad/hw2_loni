@@ -36,3 +36,6 @@ python app.py
 
 **Why automate?**
 AFH operators routinely under-bill because they don't recognize when a resident's condition has changed enough to justify a higher rate tier, or they don't know specialty contracts exist. The difference between a base rate and an optimized rate can be $50–100+ per resident per day. Most operators have no advisor helping them identify this. DSHS doesn't proactively flag it, and compliance software like Synkwise doesn't touch reimbursement strategy. Even a partially automated screening tool that flags likely mismatches and drafts the recommendation saves hours of manual review and captures revenue the operator is already entitled to but isn't receiving.
+
+## Youtube Link
+https://youtu.be/eihKha3dB4U
