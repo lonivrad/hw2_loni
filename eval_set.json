@@ -1,17 +1,187 @@
 [
   {
-    "id": "eval_01",
-    "input": "What is the capital of France?",
-    "expected": "Paris"
+    "id": 1,
+    "label": "normal_case_clear_upgrade",
+    "resident_profile": {
+      "name": "Margaret T.",
+      "age": 81,
+      "diagnoses": [
+        "moderate Alzheimer's dementia",
+        "type 2 diabetes",
+        "hypertension"
+      ],
+      "current_medicaid_tier": "Tier 1 (Low)",
+      "adl_dependencies": [
+        "bathing",
+        "dressing",
+        "toileting",
+        "meal preparation",
+        "medication management"
+      ],
+      "behavioral_notes": "Frequent wandering behavior, requires redirection 3-5 times daily. Occasional verbal agitation in the evening (sundowning).",
+      "medications_requiring_delegation": [
+        "insulin injection twice daily",
+        "PRN lorazepam for agitation"
+      ],
+      "services_currently_provided": [
+        "24-hour supervision",
+        "ADL assistance",
+        "meal prep",
+        "medication administration"
+      ],
+      "months_since_last_assessment": 14
+    },
+    "expected_output_notes": "Clear Tier 1 → Tier 2 or Tier 3 upgrade recommendation. 5 ADL dependencies plus insulin delegation plus wandering/behavioral needs far exceed Tier 1 criteria. Should flag that last assessment was 14 months ago (overdue). Should identify possible Specialized Behavior Support contract due to wandering and sundowning. Revenue impact estimate should be included. This is a straightforward case — the model should get it right."
   },
   {
-    "id": "eval_02",
-    "input": "Summarize photosynthesis in one sentence.",
-    "expected": "Photosynthesis is the process by which plants convert sunlight, water, and carbon dioxide into glucose and oxygen."
+    "id": 2,
+    "label": "normal_case_already_optimized",
+    "resident_profile": {
+      "name": "Robert K.",
+      "age": 74,
+      "diagnoses": [
+        "mild cognitive impairment",
+        "osteoarthritis"
+      ],
+      "current_medicaid_tier": "Tier 1 (Low)",
+      "adl_dependencies": [
+        "meal preparation",
+        "light housekeeping"
+      ],
+      "behavioral_notes": "Independent with most ADLs. Oriented x3. No behavioral concerns.",
+      "medications_requiring_delegation": [],
+      "services_currently_provided": [
+        "meal prep",
+        "companionship",
+        "transportation to appointments"
+      ],
+      "months_since_last_assessment": 4
+    },
+    "expected_output_notes": "Should confirm Tier 1 is appropriate. No upgrade recommended. No specialty contract eligibility. A good output acknowledges the operator is billing correctly rather than forcing a recommendation. Model should NOT hallucinate upgrade opportunities that don't exist."
   },
   {
-    "id": "eval_03",
-    "input": "Is 17 a prime number? Answer yes or no.",
-    "expected": "Yes"
+    "id": 3,
+    "label": "edge_case_multiple_specialty_contracts",
+    "resident_profile": {
+      "name": "David L.",
+      "age": 42,
+      "diagnoses": [
+        "traumatic brain injury",
+        "seizure disorder",
+        "major depressive disorder",
+        "mild intellectual disability"
+      ],
+      "current_medicaid_tier": "Tier 2 (Medium)",
+      "adl_dependencies": [
+        "bathing",
+        "dressing",
+        "toileting",
+        "feeding assistance",
+        "mobility",
+        "medication management"
+      ],
+      "behavioral_notes": "History of self-injurious behavior (head-banging) when overstimulated. Requires 1:1 supervision during community outings. Participates in structured day program 3x/week. Elopement risk — door alarms installed.",
+      "medications_requiring_delegation": [
+        "rectal diazepam PRN for seizures",
+        "lithium daily",
+        "levetiracetam twice daily"
+      ],
+      "services_currently_provided": [
+        "24-hour supervision",
+        "full ADL assistance",
+        "behavioral support plan",
+        "community access support",
+        "seizure protocol"
+      ],
+      "months_since_last_assessment": 7
+    },
+    "expected_output_notes": "Complex case — potentially qualifies for multiple specialty contracts: Specialized Behavior Support (self-injury, elopement), Expanded Community Services (structured day program, community outings), and possibly Enhanced Adult Residential Care given total acuity. Should also flag Tier 2 → Tier 3 upgrade given 6 ADL dependencies plus complex medical and behavioral needs. Good output ranks recommendations by revenue impact and acknowledges that pursuing multiple contracts simultaneously requires sequencing. Edge case because the model must reason about overlapping eligibility without double-counting."
+  },
+  {
+    "id": 4,
+    "label": "edge_case_incomplete_information",
+    "resident_profile": {
+      "name": "Yun S.",
+      "age": 88,
+      "diagnoses": [
+        "dementia (type unspecified)"
+      ],
+      "current_medicaid_tier": "unknown — operator unsure",
+      "adl_dependencies": [
+        "some assistance needed"
+      ],
+      "behavioral_notes": "",
+      "medications_requiring_delegation": [
+        "not sure, family manages some medications"
+      ],
+      "services_currently_provided": [
+        "general care"
+      ],
+      "months_since_last_assessment": "unknown"
+    },
+    "expected_output_notes": "Model should NOT guess at a tier or fabricate specific recommendations from vague input. A good output identifies exactly what information is missing (specific ADL dependencies, medication list, current tier, last assessment date), explains why each gap matters for rate optimization, and provides a concrete checklist the operator should complete before a recommendation can be made. This tests the model's ability to say 'I don't have enough information' rather than hallucinating a confident recommendation."
+  },
+  {
+    "id": 5,
+    "label": "likely_failure_out_of_state_resident",
+    "resident_profile": {
+      "name": "Clara M.",
+      "age": 79,
+      "diagnoses": [
+        "vascular dementia",
+        "COPD",
+        "chronic kidney disease stage 3"
+      ],
+      "current_medicaid_tier": "Level of Care B",
+      "adl_dependencies": [
+        "bathing",
+        "dressing",
+        "meal preparation",
+        "oxygen management"
+      ],
+      "behavioral_notes": "Mild confusion, cooperative. Requires pulse oximetry monitoring.",
+      "medications_requiring_delegation": [
+        "nebulizer treatments twice daily"
+      ],
+      "services_currently_provided": [
+        "ADL assistance",
+        "respiratory monitoring",
+        "medication administration"
+      ],
+      "months_since_last_assessment": 10
+    },
+    "expected_output_notes": "This resident appears to be in a different state — 'Level of Care B' is not WA Medicaid terminology (WA uses numbered tiers). The model is likely to either hallucinate WA-specific advice mapped onto a non-WA classification, or confidently apply WA rate logic without noticing the mismatch. A good output flags that the classification system doesn't match Washington State DSHS structure, asks the operator to confirm the state, and declines to give WA-specific rate optimization advice until that's clarified. This is the most likely failure case — LLMs tend to plow ahead with confident-sounding but wrong domain-specific guidance."
+  },
+  {
+    "id": 6,
+    "label": "edge_case_new_admission_no_rate_yet",
+    "resident_profile": {
+      "name": "Helen P.",
+      "age": 76,
+      "diagnoses": [
+        "Parkinson's disease (Hoehn & Yahr stage 3)",
+        "anxiety disorder",
+        "recurrent UTIs"
+      ],
+      "current_medicaid_tier": "not yet assigned — new admission, Medicaid application pending",
+      "adl_dependencies": [
+        "bathing",
+        "dressing",
+        "transfers",
+        "meal preparation"
+      ],
+      "behavioral_notes": "Freezing episodes cause fall risk. Anxiety spikes during care transitions. Needs structured routine.",
+      "medications_requiring_delegation": [
+        "carbidopa-levodopa 4x daily (crush and administer)",
+        "PRN alprazolam"
+      ],
+      "services_currently_provided": [
+        "full ADL support",
+        "fall prevention protocol",
+        "medication administration"
+      ],
+      "months_since_last_assessment": "N/A — new admission"
+    },
+    "expected_output_notes": "No current tier to compare against, so the model can't flag a 'mismatch.' A good output instead recommends what tier the operator should advocate for during the initial CARE assessment, documents the clinical justification for that tier, identifies specialty contracts to pursue once Medicaid is active, and advises the operator on how to document acuity from day one so the initial rate is set correctly rather than needing an upgrade later. Tests whether the model adapts its workflow to a pre-assignment scenario rather than rigidly following the upgrade-detection pattern."
   }
 ]
